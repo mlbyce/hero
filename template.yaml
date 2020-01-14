@@ -1,3 +1,276 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: 'AWS::Serverless-2016-10-31'
-Resources: {}
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub
+        - ${ResourceName} From Stack ${StackTagName} Environment ${EnvironmentTagName}
+        - ResourceName: MyApi
+      StageName: !Ref EnvironmentAPIGatewayStageName
+      DefinitionBody:
+        swagger: '2.0'
+        info: {}
+        paths:
+          /metrics:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+          /sessions:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+          /sites:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+            patch:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+          /sites/{site}:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+          /snapshots:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+          /visits:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+          /visit_rooms:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyServiceRouter.Arn}/invocations
+              responses: {}
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+  MyServiceRouter:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-MyServiceRouter
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: MyServiceRouter
+      CodeUri: src/ServiceRouter
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MyTopic.TopicName
+      Events:
+        MyApiPOSTsessions:
+          Type: Api
+          Properties:
+            Path: /sessions
+            Method: POST
+            RestApiId: !Ref MyApi
+        MyApiGETmetrics:
+          Type: Api
+          Properties:
+            Path: /metrics
+            Method: GET
+            RestApiId: !Ref MyApi
+        MyApiGETsitessite:
+          Type: Api
+          Properties:
+            Path: /sites/{site}
+            Method: GET
+            RestApiId: !Ref MyApi
+        MyApiGETsnapshots:
+          Type: Api
+          Properties:
+            Path: /snapshots
+            Method: GET
+            RestApiId: !Ref MyApi
+        MyApiGETsessions:
+          Type: Api
+          Properties:
+            Path: /sessions
+            Method: GET
+            RestApiId: !Ref MyApi
+        MyApiGETvisits:
+          Type: Api
+          Properties:
+            Path: /visits
+            Method: GET
+            RestApiId: !Ref MyApi
+        MyApiGETsites:
+          Type: Api
+          Properties:
+            Path: /sites
+            Method: GET
+            RestApiId: !Ref MyApi
+        MyApiPATCHsites:
+          Type: Api
+          Properties:
+            Path: /sites
+            Method: PATCH
+            RestApiId: !Ref MyApi
+        MyApiGETvisitrooms:
+          Type: Api
+          Properties:
+            Path: /visit_rooms
+            Method: GET
+            RestApiId: !Ref MyApi
+      Environment:
+        Variables:
+          TOPIC_NAME: !GetAtt MyTopic.TopicName
+          TOPIC_ARN: !Ref MyTopic
+          DB_ID: !If
+            - MyDatabaseUseExistingResource
+            - !Ref MyDatabaseExistingResource
+            - !Ref MyDatabase
+          DB_ADDRESS: !If
+            - MyDatabaseUseExistingResource
+            - !GetAtt MyDatabaseExistingResource.Endpoint.Address
+            - !GetAtt MyDatabase.Endpoint.Address
+          DB_PORT: !If
+            - MyDatabaseUseExistingResource
+            - !GetAtt MyDatabaseExistingResource.Endpoint.Port
+            - !GetAtt MyDatabase.Endpoint.Port
+          DB_ARN: !If
+            - MyDatabaseUseExistingResource
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${MyDatabaseExistingResource}
+            - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${MyDatabase}
+    Metadata:
+      RuntimeOption: typescript
+  MyTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${AWS::StackName}-MyTopic
+  MyDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      BackupRetentionPeriod: '1'
+      DBSubnetGroupName: !Ref MyDatabaseSubnetGroup
+      Engine: mysql
+      MasterUsername: root
+      MasterUserPassword: zyz2f&yxtYmAdzMLniqXDjUz
+      AllocatedStorage: '5'
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+      DBInstanceClass: db.t2.micro
+      EngineVersion: '5.7'
+      MultiAZ: false
+      StorageType: gp2
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - !Ref MyDatabaseSecurityGroup
+    Condition: MyDatabaseCreateNewResource
+  MyDatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Database ${ResourceName} VPC Subnets
+        - ResourceName: MyDatabase
+      SubnetIds: !Ref DefaultVPCSubnets
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stack ${StackTagName} Environment ${EnvironmentTagName} Database ${ResourceName} VPC Subnets
+            - ResourceName: MyDatabase
+    Condition: MyDatabaseCreateNewResource
+  MyDatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database Security Group
+      SecurityGroupIngress:
+        CidrIp: 0.0.0.0/0
+        FromPort: 3306
+        IpProtocol: tcp
+        ToPort: 3306
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stack ${StackTagName} Environment ${EnvironmentTagName} Database ${ResourceName} VPC Security Group
+            - ResourceName: MyDatabase
+      VpcId: !Ref DefaultVPCId
+    Condition: MyDatabaseCreateNewResource
+  MyDatabaseExistingResource:
+    Type: Custom::StackeryExistingResource
+    Properties:
+      ServiceToken: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:stackery-agent-commander
+      Type: database
+      Data: arn:aws:rds:us-west-2:155805694011:db:hero-clone
+    Condition: MyDatabaseUseExistingResource
+  MyAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-MyAuthorizer
+      Description: !Sub
+        - Stack ${StackTagName} Environment ${EnvironmentTagName} Function ${ResourceName}
+        - ResourceName: MyAuthorizer
+      CodeUri: src/Authorizer
+      Handler: index.handler
+      Runtime: nodejs12.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt MyTopic.TopicName
+      Environment:
+        Variables:
+          TOPIC_NAME: !GetAtt MyTopic.TopicName
+          TOPIC_ARN: !Ref MyTopic
+    Metadata:
+      RuntimeOption: typescript
+Parameters:
+  StackTagName:
+    Type: String
+    Description: Stack Name (injected by Stackery at deployment time)
+  EnvironmentTagName:
+    Type: String
+    Description: Environment Name (injected by Stackery at deployment time)
+  EnvironmentAPIGatewayStageName:
+    Type: String
+    Description: Environment name used for API Gateway Stage names (injected by Stackery at deployment time)
+  DefaultVPCId:
+    Type: AWS::EC2::VPC::Id
+    Description: AWS account-specific default VPC ID (injected by Stackery at deployment time)
+  DefaultVPCSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: AWS account-specific default VPC subnets (injected by Stackery at deployment time)
+Conditions:
+  MyDatabaseCreateNewResource: !Equals
+    - 'false'
+    - 'true'
+  MyDatabaseUseExistingResource: !Not
+    - Condition: MyDatabaseCreateNewResource
