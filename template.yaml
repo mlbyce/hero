@@ -167,8 +167,6 @@ Resources:
             - MyDatabaseUseExistingResource
             - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${MyDatabaseExistingResource}
             - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${MyDatabase}
-    Metadata:
-      RuntimeOption: typescript
   MyTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -250,8 +248,6 @@ Resources:
         Variables:
           TOPIC_NAME: !GetAtt MyTopic.TopicName
           TOPIC_ARN: !Ref MyTopic
-    Metadata:
-      RuntimeOption: typescript
 Parameters:
   StackTagName:
     Type: String
