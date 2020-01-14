@@ -167,8 +167,9 @@ Resources:
             - MyDatabaseUseExistingResource
             - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${MyDatabaseExistingResource}
             - !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${MyDatabase}
-    Metadata:
-      RuntimeOption: typescript
+          DB_USER: !Ref EnvConfigUSERAsString
+          DB_PASSWORD: !Ref EnvConfigPASSAsString
+          DB_DATABASE: !Ref EnvConfigDBAsString
   MyTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -180,7 +181,7 @@ Resources:
       DBSubnetGroupName: !Ref MyDatabaseSubnetGroup
       Engine: mysql
       MasterUsername: root
-      MasterUserPassword: zyz2f&yxtYmAdzMLniqXDjUz
+      MasterUserPassword: bogus
       AllocatedStorage: '5'
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
@@ -268,9 +269,23 @@ Parameters:
   DefaultVPCSubnets:
     Type: List<AWS::EC2::Subnet::Id>
     Description: AWS account-specific default VPC subnets (injected by Stackery at deployment time)
+  EnvConfigUSERAsString:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /<EnvironmentName>/USER
+  EnvConfigPASSAsString:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /<EnvironmentName>/PASS
+  EnvConfigDBAsString:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /<EnvironmentName>/DB
 Conditions:
   MyDatabaseCreateNewResource: !Equals
     - 'false'
     - 'true'
   MyDatabaseUseExistingResource: !Not
     - Condition: MyDatabaseCreateNewResource
+Metadata:
+  EnvConfigParameters:
+    EnvConfigUSERAsString: USER
+    EnvConfigPASSAsString: PASS
+    EnvConfigDBAsString: DB
