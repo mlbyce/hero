@@ -11,6 +11,7 @@
     "typescript": "^3.5.3"
   },
   "dependencies": {
-    "knex": "^0.20.7"
+    "knex": "^0.20.7",
+    "mysql2": "^2.1.0"
   }
 }

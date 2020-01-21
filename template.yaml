@@ -170,6 +170,8 @@ Resources:
           DB_USER: !Ref EnvConfigUSERAsString
           DB_PASSWORD: !Ref EnvConfigPASSAsString
           DB_DATABASE: !Ref EnvConfigDBAsString
+      Layers:
+        - !Ref MyLayer
   MyTopic:
     Type: AWS::SNS::Topic
     Properties:
@@ -253,6 +255,14 @@ Resources:
           TOPIC_ARN: !Ref MyTopic
     Metadata:
       RuntimeOption: typescript
+  MyLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: my-layer
+      Description: My Layer stuff
+      ContentUri: src/MyLayer/
+      CompatibleRuntimes:
+        - nodejs12.x
 Parameters:
   StackTagName:
     Type: String
